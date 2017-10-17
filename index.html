@@ -1,0 +1,130 @@
+<html>
+<head>
+	<title>Joystick Demo</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<style>
+		body{
+			display: flex;
+			margin: 0;
+		}
+		.plate{
+			z-index: 100;
+			margin: 200px auto 0;
+			width: 200px;
+			height: 200px;
+			border-radius: 100px;
+			background: rgba(38, 74, 96, 0.42);
+			border: solid rgba(0,0,0,0.14) 1px;
+			box-shadow: 0 0 10px 0 rgba(0,0,0,0.2);
+		}
+		.plate > .handle{
+			z-index: 101;
+			position: absolute;
+			margin: -40px;
+			width: 80px;
+			height: 80px;
+			border-radius: 100px;
+			background: rgba(38, 74, 96, 0.52);
+			border: solid rgba(0,0,0,0.14) 1px;
+			box-shadow: 0 0 10px 0 rgba(0,0,0,0.2);
+		}
+		.overlay{
+			position: absolute;
+			z-index: 99;
+			height: 100%;
+			width: 100%;
+		}
+	</style>
+</head>
+<body>
+	<div class='plate'>
+	</div>
+	<script>
+		(function(){
+			var plate = document.getElementsByClassName('plate')[0];
+			var plateRect = plate.getBoundingClientRect();
+			var centerX = plateRect.left + window.scrollX + 100
+			var centerY = plateRect.top  + window.scrollY + 100;
+			
+			var body = document.getElementsByTagName('body')[0];
+			var overlay = document.createElement('div');
+			overlay.className = 'overlay'
+			var handle = document.createElement('div');
+			handle.className = 'handle';
+			
+			var needToHandle = false;
+			
+			var actionEndHandler = function(event){
+				event.preventDefault();
+				needToHandle = false;
+				
+				if(handle.parentNode === plate){
+					plate.removeChild(handle);
+				}
+				
+				if(overlay.parentNode === body){
+					body.removeChild(overlay);
+				}				
+			}
+			var actionStartHandler = function(getX, getY){
+				return function(event){
+					needToHandle = true;
+					
+					var x = getX(event);
+					var y = getY(event);
+					if(handle.parentNode === plate){
+						plate.removeChild(handle);
+					}
+					
+					if(overlay.parentNode !== body){
+						body.appendChild(overlay);
+					}
+					
+					handle.style = 'left: ' + x + 'px; top: ' + y + 'px;';
+					plate.appendChild(handle);				
+				};
+			}
+			var actionHandler = function(getX, getY){
+				return function(event){
+					event.preventDefault();
+					if(!needToHandle){
+						return;
+					}
+					if(handle.parentNode != plate){
+						return;
+					}
+					
+					var x = getX(event) - centerX;
+					var y = getY(event) - centerY;
+					var r = Math.sqrt(x*x + y*y);
+					if(r > 100){
+						x = 100 * (x/r);
+						y = 100 * (y/r);
+					}
+
+					handle.style = 'left: ' + (centerX + x) + 'px; top: ' + (centerY + y) + 'px;';
+					return false;
+				}
+			}
+			
+			//clicks
+			var getMouseX = function(event){return event.clientX};
+			var getMouseY = function(event){return event.clientY};
+			plate.addEventListener('mousedown', actionStartHandler(getMouseX, getMouseY));
+			plate.addEventListener('mousemove', actionHandler(getMouseX, getMouseY));
+			plate.addEventListener('mouseup', actionEndHandler);
+			overlay.addEventListener('mousemove', actionHandler(getMouseX, getMouseY));
+			overlay.addEventListener('mouseup', actionEndHandler);
+			
+			//touches
+			var getTouchX = function(event){return event.touches[0].clientX};
+			var getTouchY = function(event){return event.touches[0].clientY};
+			plate.addEventListener('touchstart', actionStartHandler(getTouchX, getTouchY));
+			plate.addEventListener('touchmove', actionHandler(getTouchX, getTouchY));
+			plate.addEventListener('touchend', actionEndHandler);
+			overlay.addEventListener('touchmove', actionHandler(getTouchX, getTouchY));
+			overlay.addEventListener('touchend', actionEndHandler);
+		})();
+	</script>
+</body>
+</html>
