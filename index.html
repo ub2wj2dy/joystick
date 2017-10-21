@@ -40,23 +40,30 @@
 	<div class='plate'>
 	</div>
 	<script>
-		(function(){
+		(function(onhandlemove){
 			var plate = document.getElementsByClassName('plate')[0];
-			var plateRect = plate.getBoundingClientRect();
-			var centerX = plateRect.left + window.scrollX + 100
-			var centerY = plateRect.top  + window.scrollY + 100;
-			
 			var body = document.getElementsByTagName('body')[0];
 			var overlay = document.createElement('div');
 			overlay.className = 'overlay'
 			var handle = document.createElement('div');
 			handle.className = 'handle';
 			
-			var needToHandle = false;
+			var plateRect = function(){return plate.getBoundingClientRect();};
+			var centerX = function(){return plateRect().left + window.scrollX + 100;};
+			var centerY = function(){return plateRect().top  + window.scrollY + 100;};
+			var r = 0;
+			var x = 0;
+			var y = 0;			
+			
+			var timerId = 0;
 			
 			var actionEndHandler = function(event){
 				event.preventDefault();
-				needToHandle = false;
+
+				if(timerId){
+					clearInterval(timerId);
+					timerId = 0;
+				}
 				
 				if(handle.parentNode === plate){
 					plate.removeChild(handle);
@@ -68,10 +75,18 @@
 			}
 			var actionStartHandler = function(getX, getY){
 				return function(event){
-					needToHandle = true;
+					if(timerId){
+						clearInterval(timerId);
+					}
+					timerId = setInterval(
+						function(){
+							onhandlemove(r, x, y);
+						},
+						100
+					);
 					
-					var x = getX(event);
-					var y = getY(event);
+					x = getX(event) - centerX();
+					y = getY(event) - centerY();
 					if(handle.parentNode === plate){
 						plate.removeChild(handle);
 					}
@@ -80,29 +95,32 @@
 						body.appendChild(overlay);
 					}
 					
-					handle.style = 'left: ' + x + 'px; top: ' + y + 'px;';
+					handle.style = 'left: ' + (centerX() + x) + 'px; top: ' + (centerY() + y) + 'px;';
 					plate.appendChild(handle);				
 				};
 			}
 			var actionHandler = function(getX, getY){
 				return function(event){
 					event.preventDefault();
-					if(!needToHandle){
+					if(!timerId){
 						return;
 					}
 					if(handle.parentNode != plate){
 						return;
 					}
 					
-					var x = getX(event) - centerX;
-					var y = getY(event) - centerY;
-					var r = Math.sqrt(x*x + y*y);
+					x = getX(event) - centerX();
+					y = getY(event) - centerY();
+					r = Math.sqrt(x*x + y*y);
 					if(r > 100){
 						x = 100 * (x/r);
 						y = 100 * (y/r);
+						r = 100;
 					}
 
-					handle.style = 'left: ' + (centerX + x) + 'px; top: ' + (centerY + y) + 'px;';
+					onhandlemove(r, x, y);
+
+					handle.style = 'left: ' + (centerX() + x) + 'px; top: ' + (centerY() + y) + 'px;';
 					return false;
 				}
 			}
@@ -124,7 +142,30 @@
 			plate.addEventListener('touchend', actionEndHandler);
 			overlay.addEventListener('touchmove', actionHandler(getTouchX, getTouchY));
 			overlay.addEventListener('touchend', actionEndHandler);
-		})();
+		})(
+			function(r, x, y){
+				if(r <= 0){return;}
+				
+				var left = right = 0;
+				
+				var f = function(r, alpha){
+					if(alpha > Math.PI / 2){
+						return -r;
+					}
+					if(alpha > 0){
+						return r * Math.cos(2*alpha);
+					}
+					if(alpha > -Math.PI/2){
+						return r;
+					}
+					return -r * Math.cos(2*alpha);
+				}
+				
+				var alpha = (x>0) ? Math.acos(-y/r) : -Math.acos(-y/r);
+				
+				console.log('right = ' + f(r, alpha) + '; left=' + f(r, (alpha - Math.PI/2)%(Math.PI*2)));
+			}
+		);
 	</script>
 </body>
 </html>
