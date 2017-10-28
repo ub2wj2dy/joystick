@@ -149,6 +149,7 @@
 				var left = right = 0;
 				
 				var f = function(r, alpha){
+					var alpha = (alpha - Math.PI)%(Math.PI*2) + Math.PI;
 					if(alpha > Math.PI / 2){
 						return -r;
 					}
@@ -163,7 +164,7 @@
 				
 				var alpha = (x>0) ? Math.acos(-y/r) : -Math.acos(-y/r);
 				
-				console.log('right = ' + f(r, alpha) + '; left=' + f(r, (alpha - Math.PI/2)%(Math.PI*2)));
+				console.log('right = ' + f(r, alpha) + '; left=' + f(r, (alpha - Math.PI/2)));
 			}
 		);
 	</script>
